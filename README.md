@@ -59,15 +59,18 @@ Two kinds of settings need more than a reload:
 - **restart to apply**: `listenIp`, `listenPort`, `threads`, `tlsEnable` and the
   usage file only change when the server restarts. The dashboard compares the
   saved values with the ones the server logged at startup and shows what is
-  waiting for a restart. With `restartCommand` set in the dashboard's config, a
-  **Restart server** button does it; otherwise run `systemctl restart nipovpn-server`.
+  waiting for a restart. The **Restart server** button in the top bar restarts
+  it at any time; by default it runs `systemctl restart nipovpn-server`, or the
+  `restartCommand` in the dashboard's config (for example for Docker).
 - **agents must match**: `tunnelEnable`, `tlsEnable`, `aesEnable` and the listen port
   must be the same on every agent. After changing them, send every user a new
   config or link from the **Share** button.
 
 The **Agent template** section is the `agent:` block of the server's config. The
 server does not use it; the dashboard builds shared agent configs and links
-from it.
+from it. Its **Server address** (`agent.serverIp`) is the address put in shared
+configs, unless `publicAddress` is set or you type another one in the Share
+dialog. **HTTP methods** are checkboxes: pick the ones agents may use.
 
 ## Themes
 
@@ -168,7 +171,7 @@ All settings are in `/etc/nipovpn-dashboard/config.yaml` ([sample](config.yaml))
 | `passwordHash`   | (required)                 | From `nipovpn-dashboard hash-password`                                 |
 | `nipovpnConfig`  | `/etc/nipovpn/config.yaml` | The server's config file                                               |
 | `reloadCommand`  | `[]`                       | Command that reloads the server; empty sends `SIGHUP` to the nipovpn server process |
-| `restartCommand` | `[]`                       | Command that restarts the server, e.g. `[systemctl, restart, nipovpn-server]`; enables the **Restart server** button |
+| `restartCommand` | `[]`                       | Command the **Restart server** button runs; empty runs `systemctl restart nipovpn-server` (no button without systemctl) |
 | `logFile`        | `log.logFile` of the server | The server log, if it is somewhere else from the dashboard's view      |
 | `usageFile`      | `server.usage.file`        | The usage file, if it is somewhere else from the dashboard's view      |
 | `publicAddress`  | `agent.serverIp`           | Address agents use to reach the server, for shared configs and links   |

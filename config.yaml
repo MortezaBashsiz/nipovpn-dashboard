@@ -51,12 +51,12 @@ nipovpnConfig: "/etc/nipovpn/config.yaml"
 #             [docker, kill, --signal=HUP, nipovpn]
 reloadCommand: []
 
-# restartCommand: what restarts the server, for settings that only apply on
-#   restart (listen address and port, threads, tlsEnable, usage file). With it
-#   the dashboard shows a "Restart server" button; without it (default) it tells
-#   you to restart the server yourself.
-#   Examples: [systemctl, restart, nipovpn-server]
-#             [docker, restart, nipovpn]
+# restartCommand: what the "Restart server" button runs, also needed for
+#   settings that only apply on restart (listen address and port, threads,
+#   tlsEnable, usage file).
+#   Empty (default): systemctl restart nipovpn-server, when systemctl is there;
+#   without systemctl the button is hidden and you restart the server yourself.
+#   Example: [docker, restart, nipovpn]
 restartCommand: []
 
 # logFile, usageFile: where the server's log and usage file are, when they are
@@ -67,7 +67,8 @@ usageFile: ""
 
 # publicAddress, publicPort: the address and port agents use to reach this
 #   server, put in the agent configs and links the dashboard creates. You can
-#   also type them in the dashboard. Default: agent.serverIp and server.listenPort.
+#   also type them in the Share dialog, or set the server address under Server
+#   settings > Agent template. Default: agent.serverIp and server.listenPort.
 publicAddress: ""
 publicPort: 0
 

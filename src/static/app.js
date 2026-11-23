@@ -589,6 +589,7 @@
 
   function renderRestartNotice() {
     const pending = state.pendingRestart || [];
+    $("restart-top-btn").hidden = !state.restartAvailable;
     $("restart-notice").hidden = !pending.length;
     if (!pending.length) return;
     const list = pending.map((p) => `${p.label} (running ${p.running}, saved ${fmtValue(p.value)})`).join(", ");
@@ -598,11 +599,11 @@
     $("restart-btn").hidden = !state.restartAvailable;
   }
 
-  $("restart-btn").addEventListener("click", async (ev) => {
+  async function restartServer(ev) {
+    const btn = ev.currentTarget;
     const ok = await confirmAction("Restart the server?",
       "Every user's connections drop for a moment; agents reconnect by themselves.", "Restart");
     if (!ok) return;
-    const btn = ev.currentTarget;
     btn.disabled = true;
     try {
       const result = await api("POST", "restart");
@@ -614,7 +615,9 @@
     } finally {
       btn.disabled = false;
     }
-  });
+  }
+  $("restart-btn").addEventListener("click", restartServer);
+  $("restart-top-btn").addEventListener("click", restartServer);
 
   // ------------------------------------------------------------ settings
 
@@ -650,6 +653,9 @@
   function readInput(field, input) {
     if (field.type === "bool") return input.checked;
     if (field.type === "int") return input.value.trim() === "" ? "" : Number(input.value);
+    if (field.type === "list" && field.choices) {
+      return [...input.querySelectorAll("input:checked")].map((c) => c.value);
+    }
     if (field.type === "list") return input.value.split("\n").map((v) => v.trim()).filter(Boolean);
     return input.value;
   }
@@ -662,6 +668,17 @@
       input.checked = !!field.value;
       return [input, el("label", { class: "switch", for: id }, input, el("span", { text: field.value ? "On" : "Off" }))];
     }
+    if (field.type === "list" && field.choices) {
+      // Choices first, then anything else already in the config, so nothing is lost.
+      const options = field.choices.concat(field.value.filter((v) => !field.choices.includes(v)));
+      input = el("div", { id, class: "choices", role: "group", "aria-label": field.label },
+        options.map((o) => {
+          const box = el("input", { type: "checkbox", value: o });
+          box.checked = field.value.includes(o);
+          return el("label", { class: "check" }, box, ` ${o}`);
+        }));
+      return [input, input];
+    }
     if (field.type === "enum") {
       input = el("select", { id }, field.options.map((o) => el("option", { value: o, text: o })));
       input.value = field.value;
@@ -671,7 +688,7 @@
     } else {
       const attrs = { id, spellcheck: "false", autocomplete: "off" };
       if (field.type === "int") Object.assign(attrs, { type: "number", min: field.min, max: field.max, step: "1", inputmode: "numeric" });
-      if (field.type === "path" || field.type === "ip") attrs.class = "mono";
+      if (field.type === "path" || field.type === "ip" || field.type === "host") attrs.class = "mono";
       input = el("input", attrs);
       input.value = field.value;
     }

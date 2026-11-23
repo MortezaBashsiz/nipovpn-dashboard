@@ -33,6 +33,7 @@ HOST_RE = re.compile(r"^[A-Za-z0-9.-]{1,253}$")
 PATH_RE = re.compile(r"^[^\0\n\r]{1,1024}$")
 ENDPOINT_RE = re.compile(r"^[A-Za-z0-9._~!$&'()*+,;=:@/-]{1,200}$")
 METHOD_RE = re.compile(r"^[A-Z]{1,20}$")
+HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
 
 
 def _f(id, section, label, type, default, help="", **kw):
@@ -79,6 +80,9 @@ FIELDS = [
     _f("log.logFile", "log", "Log file", "path", "/var/log/nipovpn/nipovpn.log",
        "The directory must exist and be writable by the server."),
 
+    _f("agent.serverIp", "agent", "Server address", "host", "127.0.0.1",
+       "The public IP or host name agents connect to; put in shared configs and links. "
+       "publicAddress in the dashboard config, or an address typed in the Share dialog, takes precedence."),
     _f("agent.protocol", "agent", "Local protocol", "enum", "socks5",
        "What applications use to connect to the agent.", options=["socks5", "http"], moved=True),
     _f("agent.listenIp", "agent", "Agent listen address", "ip", "127.0.0.1",
@@ -88,7 +92,8 @@ FIELDS = [
     _f("agent.fakeUrls", "agent", "Fake hosts", "list", [],
        "Hosts used at random for the Host header and TLS SNI. One per line.", moved=True, item="host"),
     _f("agent.methods", "agent", "HTTP methods", "list", [],
-       "Used at random for requests to the server. One per line.", moved=True, item="method"),
+       "Used at random for requests to the server. Pick at least one.", moved=True, item="method",
+       choices=HTTP_METHODS),
     _f("agent.endPoints", "agent", "URL paths", "list", [],
        "Used at random for requests to the server. One per line.", moved=True, item="endpoint"),
     _f("agent.pullTimeout", "agent", "Poll interval", "int", 1,
@@ -154,6 +159,16 @@ def normalize(field, value):
                 raise ValueError
         except ValueError:
             raise ValueError(f"{label} must be an IPv4 address, such as 0.0.0.0 or 127.0.0.1")
+        return text
+    if t == "host":
+        text = str(value).strip()
+        try:
+            ipaddress.ip_address(text)
+            return text
+        except ValueError:
+            pass
+        if not HOST_RE.match(text) or text.startswith(("-", ".")) or ".." in text:
+            raise ValueError(f"{label} must be an IP address or host name, such as 203.0.113.10 or vpn.example.com")
         return text
     if t == "path":
         text = str(value).strip()

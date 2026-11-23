@@ -25,6 +25,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 import yaml
 
@@ -264,6 +265,20 @@ class PasswordTest(unittest.TestCase):
         for host in ("evil.example", "evil.example:8090", "", "127.0.0.1.evil.example"):
             self.assertFalse(allowed(host, []), host)
 
+    def test_restart_command_default(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            path = os.path.join(tmp, "dashboard.yaml")
+            with open(path, "w") as f:
+                yaml.safe_dump({"passwordHash": dashboard_main.hash_password("x")}, f)
+            with mock.patch.object(dashboard_main.shutil, "which", return_value="/usr/bin/systemctl"):
+                self.assertEqual(dashboard_main.load_settings(path)["restartCommand"],
+                                 ["systemctl", "restart", "nipovpn-server"])
+            with mock.patch.object(dashboard_main.shutil, "which", return_value=None):
+                self.assertEqual(dashboard_main.load_settings(path)["restartCommand"], [])
+        finally:
+            shutil.rmtree(tmp)
+
 
 class Dashboard:
     """A dashboard process on a free port with its own copy of a server config."""
@@ -279,6 +294,8 @@ class Dashboard:
             "nipovpnConfig": self.config_path,
             "reloadCommand": reload_command if reload_command is not None else ["true"],
             "publicAddress": "203.0.113.7",
+            # Never restart a real nipovpn-server through the systemctl default.
+            "restartCommand": ["false"],
         }
         if log_file:
             settings["logFile"] = log_file
@@ -469,7 +486,22 @@ class ApiTest(unittest.TestCase):
             self.assertIn("# timeout: unsigned short", f.read())
 
         self.assertEqual(self.d.request("PATCH", "/api/settings", {"changes": {"server.listenPort": 0}})[0], 400)
-        self.assertEqual(self.d.request("POST", "/api/restart")[0], 409)
+        status, body, _ = self.d.request("POST", "/api/restart")
+        self.assertEqual(status, 200, body)
+        self.assertFalse(body["ok"])
+        self.assertIn("restart command failed", body["message"])
+
+        status, body, _ = self.d.request("PATCH", "/api/settings",
+                                         {"changes": {"agent.serverIp": "vpn.example.com",
+                                                      "agent.methods": ["PUT", "DELETE"]}})
+        self.assertEqual(status, 200, body)
+        _, doc = serverconfig.load(self.d.config_path)
+        self.assertEqual(doc["agent"]["serverIp"], "vpn.example.com")
+        self.assertEqual(doc["agent"]["methods"], ["PUT", "DELETE"])
+        self.assertEqual(self.d.request("PATCH", "/api/settings",
+                                        {"changes": {"agent.serverIp": "bad host"}})[0], 400)
+        self.assertEqual(self.d.request("PATCH", "/api/settings",
+                                        {"changes": {"agent.methods": []}})[0], 400)
 
     def test_set_usage(self):
         self.d.login()

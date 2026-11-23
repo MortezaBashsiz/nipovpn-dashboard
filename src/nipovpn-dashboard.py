@@ -22,6 +22,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import signal
 import socket
 import ssl
@@ -81,6 +82,8 @@ SETTINGS_DEFAULTS = {
     "tlsKeyFile": "",
 }
 DEFAULT_CERT_DIR = "/etc/nipovpn-dashboard"
+# Used when restartCommand is empty and systemd is there: the unit of the nipovpn Debian package.
+DEFAULT_RESTART_COMMAND = ["systemctl", "restart", "nipovpn-server"]
 
 
 # ---------------------------------------------------------------- passwords
@@ -156,6 +159,8 @@ def load_settings(path):
             s[key] = s[key].split()
         if not isinstance(s[key], list) or not all(isinstance(a, str) for a in s[key]):
             raise SettingsError(f"{key} must be a list of strings, e.g. {example}")
+    if not s["restartCommand"] and shutil.which("systemctl"):
+        s["restartCommand"] = list(DEFAULT_RESTART_COMMAND)
     if not isinstance(s["tlsEnable"], bool):
         raise SettingsError("tlsEnable must be true or false")
     if s["tlsEnable"]:
@@ -544,8 +549,8 @@ class Dashboard:
     def restart(self):
         command = self.settings["restartCommand"]
         if not command:
-            raise ApiError(409, "no restartCommand in the dashboard settings; restart the server yourself, "
-                                "e.g. systemctl restart nipovpn-server")
+            raise ApiError(409, "no restartCommand in the dashboard settings and no systemctl; "
+                                "restart the server yourself")
         seq = self.log.mark()
         try:
             proc = subprocess.run(command, capture_output=True, text=True, timeout=60)
