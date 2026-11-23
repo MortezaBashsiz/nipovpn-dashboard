@@ -1,0 +1,80 @@
+---
+# NipoVPN dashboard settings: /etc/nipovpn-dashboard/config.yaml
+# Apply changes with: systemctl restart nipovpn-dashboard
+# The dashboard is a web page for managing the users of a nipovpn server: add,
+# edit, disable and delete users, watch their usage and activity, and share an
+# agent config or nipovpn:// link (with a QR code) with each user.
+#
+# It also edits the server's settings (ports, TLS, timeouts, logging, the agent
+# template for shared configs and more).
+#
+# It runs beside the server: it edits the server's config file,
+# asks the server to reload, reads the usage file and follows the server log.
+#
+# Start it with: systemctl enable --now nipovpn-dashboard
+# Then open it through an SSH tunnel from your computer:
+#   ssh -N -L 8090:127.0.0.1:8090 root@your-server
+#   and browse to http://127.0.0.1:8090/
+# or turn on TLS below and open it directly over HTTPS.
+
+# listenIp: the address the dashboard listens on (default: 127.0.0.1).
+#   Without TLS, keep it on 127.0.0.1 and use an SSH tunnel; with TLS you can
+#   use 0.0.0.0 to open the dashboard directly over HTTPS.
+listenIp: "127.0.0.1"
+# listenPort: (default: 8090)
+listenPort: 8090
+
+# tlsEnable: bool (default: false). Serve the dashboard over HTTPS.
+# tlsCertFile, tlsKeyFile: the certificate (PEM, chain allowed) and its key.
+#   A self-signed one: nipovpn-dashboard make-cert --host <server IP or name>
+#   (writes /etc/nipovpn-dashboard/dashboard.crt and dashboard.key). You can
+#   also use a certificate from a CA, such as Let's Encrypt. A renewed
+#   certificate is loaded within a minute, or at once with
+#   systemctl reload nipovpn-dashboard.
+tlsEnable: false
+tlsCertFile: ""
+tlsKeyFile: ""
+
+# passwordHash: the hash of the dashboard password. Create it with
+#   nipovpn-dashboard hash-password
+# and paste the output here. The dashboard does not start without one.
+passwordHash: ""
+
+# nipovpnConfig: the server's config file (default: /etc/nipovpn/config.yaml).
+#   The dashboard needs write access to it. Before each change the previous file
+#   is kept as config.yaml.bak.
+nipovpnConfig: "/etc/nipovpn/config.yaml"
+
+# reloadCommand: what makes the server reload its config after a change.
+#   Empty (default): send SIGHUP to the running nipovpn server process.
+#   Examples: [systemctl, reload, nipovpn-server]
+#             [docker, kill, --signal=HUP, nipovpn]
+reloadCommand: []
+
+# restartCommand: what restarts the server, for settings that only apply on
+#   restart (listen address and port, threads, tlsEnable, usage file). With it
+#   the dashboard shows a "Restart server" button; without it (default) it tells
+#   you to restart the server yourself.
+#   Examples: [systemctl, restart, nipovpn-server]
+#             [docker, restart, nipovpn]
+restartCommand: []
+
+# logFile, usageFile: where the server's log and usage file are, when they are
+#   not where the server config says (for example when the server runs in Docker).
+#   Default: log.logFile and server.usage.file of nipovpnConfig.
+logFile: ""
+usageFile: ""
+
+# publicAddress, publicPort: the address and port agents use to reach this
+#   server, put in the agent configs and links the dashboard creates. You can
+#   also type them in the dashboard. Default: agent.serverIp and server.listenPort.
+publicAddress: ""
+publicPort: 0
+
+# allowedHosts: host names, besides IP addresses and localhost, the dashboard
+#   may be opened under. Requests for any other host name are refused, which
+#   protects against DNS rebinding.
+allowedHosts: []
+
+# sessionHours: how long a login lasts (default: 12)
+sessionHours: 12

@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    chmod 0700 /etc/nipovpn-dashboard || true
+    chmod 0600 /etc/nipovpn-dashboard/config.yaml || true
+
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        # Restart an upgraded dashboard that was running.
+        if systemctl is-active --quiet nipovpn-dashboard.service; then
+            systemctl restart nipovpn-dashboard.service || true
+        fi
+    fi
+
+    if ! grep -Eq '^passwordHash:[[:space:]]*"?pbkdf2-' /etc/nipovpn-dashboard/config.yaml 2>/dev/null; then
+        cat <<'MSG'
+
+NipoVPN dashboard installed. To start it:
+  1. nipovpn-dashboard hash-password
+  2. put the output in passwordHash in /etc/nipovpn-dashboard/config.yaml
+  3. systemctl enable --now nipovpn-dashboard
+  4. ssh -N -L 8090:127.0.0.1:8090 root@this-server, then open http://127.0.0.1:8090/
+For HTTPS instead of an SSH tunnel: nipovpn-dashboard make-cert --host <server IP>
+and set tlsEnable, tlsCertFile and tlsKeyFile in the same file.
+
+MSG
+    fi
+fi
+
+exit 0

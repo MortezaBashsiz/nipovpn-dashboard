@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NipoVPN Dashboard</title>
+  <script src="theme.js"></script>
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <section id="login" class="login" hidden>
+    <div class="login-theme">
+        <div class="theme-switch" role="group" aria-label="Theme">
+          <button type="button" data-theme-choice="light">Light</button>
+          <button type="button" data-theme-choice="system">System</button>
+          <button type="button" data-theme-choice="dark">Dark</button>
+        </div>
+    </div>
+    <form id="login-form" class="login-card">
+      <h1><img class="logo" src="logo.png" alt="">NipoVPN</h1>
+      <p class="muted">Server dashboard</p>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required autofocus>
+      <p id="login-error" class="error" role="alert"></p>
+      <button type="submit" class="primary wide">Log in</button>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="brand"><img class="logo" src="logo.png" alt="">NipoVPN <span class="muted">dashboard</span></div>
+      <div class="topbar-right">
+        <span id="server-pill" class="pill">…</span>
+        <div class="theme-switch" role="group" aria-label="Theme">
+          <button type="button" data-theme-choice="light">Light</button>
+          <button type="button" data-theme-choice="system">System</button>
+          <button type="button" data-theme-choice="dark">Dark</button>
+        </div>
+        <button id="reload-btn" class="ghost" title="Make the server reload its config file">Reload server</button>
+        <button id="logout-btn" class="ghost">Log out</button>
+      </div>
+    </header>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#users" data-tab="users">Users</a>
+      <a href="#settings" data-tab="settings">Server settings</a>
+    </nav>
+
+    <main>
+      <div id="problems"></div>
+      <div id="restart-notice" class="notice restart" hidden>
+        <span id="restart-text"></span>
+        <button type="button" id="restart-btn" class="ghost" hidden>Restart server</button>
+      </div>
+
+      <div id="view-settings" hidden>
+        <p class="muted small" id="settings-file"></p>
+        <div id="settings-sections"></div>
+        <div id="savebar" class="savebar" hidden>
+          <span id="savebar-text"></span>
+          <div class="row">
+            <button type="button" id="discard-btn" class="ghost">Discard</button>
+            <button type="button" id="review-btn" class="primary">Review and save</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-users">
+
+      <section class="cards">
+        <div class="card"><div class="card-label">Server</div><div id="c-server" class="card-value">–</div><div id="c-server-sub" class="card-sub"></div></div>
+        <div class="card"><div class="card-label">Users</div><div id="c-users" class="card-value">–</div><div id="c-users-sub" class="card-sub"></div></div>
+        <div class="card"><div class="card-label">Traffic this period</div><div id="c-traffic" class="card-value">–</div><div id="c-traffic-sub" class="card-sub"></div></div>
+        <div class="card"><div class="card-label">Open connections</div><div id="c-conns" class="card-value">–</div><div id="c-conns-sub" class="card-sub"></div></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Users</h2>
+          <div class="panel-tools">
+            <input id="search" type="search" placeholder="Filter users" aria-label="Filter users">
+            <button id="add-btn" class="primary">Add user</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="users">
+            <thead>
+              <tr><th>User</th><th>Status</th><th class="usage-col">Usage this period</th><th>Activity</th><th class="actions-col"><span class="sr-only">Actions</span></th></tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+        <p id="orphans" class="muted small" hidden></p>
+      </section>
+
+      </div>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Server events</h2><span class="muted small">from the server log</span></div>
+        <ul id="events" class="events"></ul>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="user-dialog">
+    <form id="user-form" method="dialog">
+      <h3 id="user-title">Add user</h3>
+      <label for="u-name">Name</label>
+      <input id="u-name" required maxlength="64" pattern="[A-Za-z0-9._@\-]{1,64}" autocomplete="off" spellcheck="false">
+      <p class="hint">Letters, digits and . _ @ -</p>
+      <label for="u-token">Token</label>
+      <div class="row">
+        <input id="u-token" autocomplete="off" spellcheck="false" class="mono">
+        <button type="button" id="u-gen" class="ghost">Generate</button>
+      </div>
+      <p id="u-token-hint" class="hint">At least 32 characters. Leave empty to generate one.</p>
+      <label for="u-limit">Monthly limit</label>
+      <input id="u-limit" list="limits" placeholder="No limit" autocomplete="off">
+      <datalist id="limits"><option value="500MB"><option value="1GB"><option value="5GB"><option value="10GB"><option value="50GB"><option value="100GB"></datalist>
+      <p class="hint">Upload + download, e.g. 2GB, 500MB or 1.5GiB. Empty for no limit.</p>
+      <label class="check"><input id="u-enabled" type="checkbox" checked> Enabled</label>
+      <p id="u-error" class="error" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit" class="primary" id="u-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="share-dialog" class="wide-dialog">
+    <div>
+      <h3 id="share-title">Agent config</h3>
+      <div class="row">
+        <div class="grow"><label for="s-address">Server address</label><input id="s-address" placeholder="public IP or host of this server" spellcheck="false"></div>
+        <div class="port"><label for="s-port">Port</label><input id="s-port" inputmode="numeric"></div>
+        <button type="button" id="s-update" class="ghost align-end">Update</button>
+      </div>
+      <p id="s-error" class="error" role="alert"></p>
+      <div class="share-body">
+        <div class="qr"><img id="s-qr" alt="QR code of the nipovpn:// link"></div>
+        <div class="grow">
+          <label>nipovpn:// link</label>
+          <textarea id="s-url" readonly rows="4" class="mono small"></textarea>
+          <div class="row"><button type="button" class="ghost" data-copy="s-url">Copy link</button></div>
+          <label>config.yaml</label>
+          <textarea id="s-yaml" readonly rows="10" class="mono small"></textarea>
+          <div class="row">
+            <button type="button" class="ghost" data-copy="s-yaml">Copy config</button>
+            <button type="button" class="ghost" id="s-download">Download config.yaml</button>
+          </div>
+        </div>
+      </div>
+      <p class="hint">The link and config contain this user's token. Send them only to that user.</p>
+      <div class="dialog-actions"><button type="button" class="primary" data-close>Done</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="usage-dialog">
+    <form id="usage-form" method="dialog">
+      <h3 id="usage-title">Usage</h3>
+      <p id="usage-current" class="muted"></p>
+      <label for="g-value">Set usage to</label>
+      <div class="row">
+        <input id="g-value" inputmode="decimal" value="0" class="grow">
+        <select id="g-unit"><option value="1">B</option><option value="1000000">MB</option><option value="1000000000" selected>GB</option></select>
+      </div>
+      <p class="hint">The server picks up the change within 30 seconds. A blocked user is unblocked once their usage is below their limit.</p>
+      <p id="g-error" class="error" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="review-dialog" class="wide-dialog">
+    <div>
+      <h3>Save server settings?</h3>
+      <ul id="review-list" class="changes"></ul>
+      <p id="review-error" class="error" role="alert"></p>
+      <p class="hint">The server config is saved (the previous one is kept as config.yaml.bak) and the server reloads.</p>
+      <div class="dialog-actions">
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="button" id="review-save" class="primary">Save and reload</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="confirm-dialog">
+    <form method="dialog">
+      <h3 id="confirm-title">Are you sure?</h3>
+      <p id="confirm-text" class="muted"></p>
+      <div class="dialog-actions">
+        <button value="no" class="ghost">Cancel</button>
+        <button value="yes" id="confirm-yes" class="danger">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+</body>
+</html>

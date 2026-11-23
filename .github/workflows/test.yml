@@ -1,0 +1,56 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (with a nipovpn server built from source)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Checkout nipovpn
+        uses: actions/checkout@v4
+        with:
+          repository: MortezaBashsiz/nipovpn
+          path: nipovpn
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            libssl-dev \
+            libboost-all-dev \
+            libyaml-cpp-dev \
+            python3-yaml \
+            zbar-tools \
+            openssl
+
+      - name: Build nipovpn
+        run: |
+          cmake -S nipovpn -B nipovpn/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build nipovpn/build --target nipovpn -j"$(nproc)"
+
+      - name: Run tests
+        run: python3 tests/test_dashboard.py --nipovpn nipovpn --binary nipovpn/build/core/nipovpn

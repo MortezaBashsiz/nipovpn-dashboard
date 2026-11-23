@@ -1,0 +1,86 @@
+name: Build and Release Package - dev
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PACKAGE_VERSION: 0.1.${{ github.run_number }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            dpkg-dev \
+            lintian \
+            python3-yaml \
+            zbar-tools \
+            openssl
+
+      - name: Run tests
+        run: python3 tests/test_dashboard.py
+
+      - name: Build Debian package
+        run: |
+          packaging/build-deb.sh "${PACKAGE_VERSION}" build "nipovpn-dashboard_dev_${{ env.PACKAGE_VERSION }}_all.deb"
+          ls -lah build/
+
+      - name: Show Debian package information
+        run: |
+          dpkg -I "build/nipovpn-dashboard_dev_${{ env.PACKAGE_VERSION }}_all.deb"
+          dpkg -c "build/nipovpn-dashboard_dev_${{ env.PACKAGE_VERSION }}_all.deb"
+
+      - name: Lintian
+        run: |
+          lintian --tag-display-limit 0 "build/nipovpn-dashboard_dev_${{ env.PACKAGE_VERSION }}_all.deb" || true
+
+      - name: Install and run the package on a clean Ubuntu
+        run: |
+          docker run --rm -v "$PWD:/src:ro" ubuntu:24.04 \
+            sh /src/packaging/smoke-test.sh "/src/build/nipovpn-dashboard_dev_${{ env.PACKAGE_VERSION }}_all.deb"
+
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nipovpn-dashboard-dev-deb
+          path: build/nipovpn-dashboard_dev_${{ env.PACKAGE_VERSION }}_all.deb
+
+  release:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nipovpn-dashboard-dev-deb
+          path: ./
+
+      - name: Show downloaded files
+        run: |
+          ls -lah
+
+      - name: Create dev GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-v${{ env.PACKAGE_VERSION }}
+          name: dev Version v${{ env.PACKAGE_VERSION }}
+          prerelease: true
+          files: |
+            nipovpn-dashboard_dev_${{ env.PACKAGE_VERSION }}_all.deb
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
