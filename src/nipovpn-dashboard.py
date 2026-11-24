@@ -402,7 +402,7 @@ class Dashboard:
                 })
             names = {u["name"] for u in result_users}
             orphans = sorted(n for n in used if n not in names)
-            events = list(self.log.events)[-40:]
+            events = list(self.log.events)
             period = self.usage.period
 
         return {

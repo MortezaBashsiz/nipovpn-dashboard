@@ -290,7 +290,7 @@
         ev.stopPropagation();
         const willOpen = list.hidden;
         closeMenu();
-        if (willOpen) { list.hidden = false; openMenu = list; }
+        if (willOpen) { list.hidden = false; openMenu = list; placeMenu(list, trigger); }
       },
     });
     function run(fn) { closeMenu(); fn(); }
@@ -298,14 +298,25 @@
     return wrap;
   }
 
+  function placeMenu(list, trigger) {
+    const r = trigger.getBoundingClientRect();
+    const h = list.offsetHeight;
+    const below = window.innerHeight - r.bottom - 8;
+    list.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+    list.style.top = below >= h || r.top < h ? `${r.bottom + 4}px` : `${r.top - h - 4}px`;
+  }
+
   function closeMenu() {
     if (openMenu) { openMenu.hidden = true; openMenu = null; }
   }
   document.addEventListener("click", () => { if (openMenu) { closeMenu(); renderUsers(); } });
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && openMenu) { closeMenu(); renderUsers(); } });
+  for (const name of ["scroll", "resize"]) {
+    window.addEventListener(name, () => { if (openMenu) { closeMenu(); renderUsers(); } }, true);
+  }
 
   function renderEvents() {
-    const list = $("events");
+    const list = $("events-list");
     const events = state.events.slice().reverse();
     if (!events.length) {
       list.replaceChildren(el("li", { class: "empty", text: "Nothing yet" }));
@@ -429,30 +440,21 @@
 
   // ------------------------------------------------------------ share
 
-  function rememberedAddress() {
-    try { return localStorage.getItem("nipovpn.shareAddress") || ""; } catch (e) { return ""; }
-  }
-
-  function rememberAddress(address, port) {
-    try {
-      localStorage.setItem("nipovpn.shareAddress", address);
-      localStorage.setItem("nipovpn.sharePort", port);
-    } catch (e) { /* ignore */ }
-  }
-
-  function rememberedPort() {
-    try { return localStorage.getItem("nipovpn.sharePort") || ""; } catch (e) { return ""; }
-  }
+  // The address and port come from the server config each time the dialog opens,
+  // so changed settings show up at once. A typed address or port is used only
+  // while the dialog is open; it is not remembered.
+  let shareDefaults = null;
 
   async function loadShare() {
     $("s-error").textContent = "";
     const params = new URLSearchParams();
     const address = $("s-address").value.trim();
     const port = $("s-port").value.trim();
-    if (address) params.set("address", address);
-    if (port) params.set("port", port);
+    if (shareDefaults && address && address !== shareDefaults.address) params.set("address", address);
+    if (shareDefaults && port && port !== String(shareDefaults.port)) params.set("port", port);
     try {
       const data = await api("GET", `users/${encodeURIComponent(sharing)}/share?${params}`);
+      if (!shareDefaults) shareDefaults = { address: data.address, port: data.port };
       $("s-address").value = data.address;
       $("s-port").value = data.port;
       $("s-url").value = data.url;
@@ -462,9 +464,9 @@
       } else {
         $("s-qr").removeAttribute("src");
       }
-      if (address) rememberAddress(data.address, data.port);
       if (/^(127\.|localhost|0\.0\.0\.0)/.test(data.address)) {
-        $("s-error").textContent = "Enter the public address of this server; agents cannot reach a local address.";
+        $("s-error").textContent = "Enter the public address of this server, or set it under Server settings > "
+          + "Agent template > Server address; agents cannot reach a local address.";
       }
     } catch (e) {
       $("s-error").textContent = e.message;
@@ -476,9 +478,11 @@
 
   function openShare(name) {
     sharing = name;
+    shareDefaults = null;
+    try { localStorage.removeItem("nipovpn.shareAddress"); localStorage.removeItem("nipovpn.sharePort"); } catch (e) { /* ignore */ }
     $("share-title").textContent = `Agent config for ${name}`;
-    $("s-address").value = rememberedAddress();
-    $("s-port").value = rememberedPort();
+    $("s-address").value = "";
+    $("s-port").value = "";
     $("s-url").value = "";
     $("s-yaml").value = "";
     $("s-qr").removeAttribute("src");
@@ -566,13 +570,15 @@
   // ------------------------------------------------------------ tabs
 
   function currentTab() {
-    return location.hash === "#settings" ? "settings" : "users";
+    return { "#settings": "settings", "#events": "events" }[location.hash] || "users";
   }
 
   function showTab() {
     const tab = currentTab();
     $("view-users").hidden = tab !== "users";
     $("view-settings").hidden = tab !== "settings";
+    $("view-events").hidden = tab !== "events";
+    $("main").classList.toggle("full", tab === "users");
     for (const a of document.querySelectorAll("[data-tab]")) {
       if (a.dataset.tab === tab) a.setAttribute("aria-current", "page");
       else a.removeAttribute("aria-current");

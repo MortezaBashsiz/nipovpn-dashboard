@@ -46,9 +46,10 @@
     <nav class="tabs" aria-label="Sections">
       <a href="#users" data-tab="users">Users</a>
       <a href="#settings" data-tab="settings">Server settings</a>
+      <a href="#events" data-tab="events">Server events</a>
     </nav>
 
-    <main>
+    <main id="main">
       <div id="problems"></div>
       <div id="restart-notice" class="notice restart" hidden>
         <span id="restart-text"></span>
@@ -97,10 +98,12 @@
 
       </div>
 
-      <section class="panel">
-        <div class="panel-head"><h2>Server events</h2><span class="muted small">from the server log</span></div>
-        <ul id="events" class="events"></ul>
-      </section>
+      <div id="view-events" hidden>
+        <section class="panel">
+          <div class="panel-head"><h2>Server events</h2><span class="muted small">from the server log, newest first</span></div>
+          <ul id="events-list" class="events"></ul>
+        </section>
+      </div>
     </main>
   </div>
 
