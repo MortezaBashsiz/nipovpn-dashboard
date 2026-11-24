@@ -46,9 +46,10 @@
     <nav class="tabs" aria-label="Sections">
       <a href="#users" data-tab="users">Users</a>
       <a href="#settings" data-tab="settings">Server settings</a>
+      <a href="#events" data-tab="events">Server events</a>
     </nav>
 
-    <main>
+    <main id="main">
       <div id="problems"></div>
       <div id="restart-notice" class="notice restart" hidden>
         <span id="restart-text"></span>
@@ -97,10 +98,12 @@
 
       </div>
 
-      <section class="panel">
-        <div class="panel-head"><h2>Server events</h2><span class="muted small">from the server log</span></div>
-        <ul id="events" class="events"></ul>
-      </section>
+      <div id="view-events" hidden>
+        <section class="panel">
+          <div class="panel-head"><h2>Server events</h2><span class="muted small">from the server log, newest first</span></div>
+          <ul id="events-list" class="events"></ul>
+        </section>
+      </div>
     </main>
   </div>
 
@@ -152,6 +155,10 @@
           </div>
         </div>
       </div>
+      <p id="s-aes-warning" class="notice small" hidden>AES is off on this server. The link says so,
+        but NipoVPN Android 1.1.59.5 and older ignore it and always use AES, so they cannot connect.
+        Ask users to update the app, use the config.yaml with the nipovpn agent, or turn AES on under
+        Server settings.</p>
       <p class="hint">The link and config contain this user's token. Send them only to that user.</p>
       <div class="dialog-actions"><button type="button" class="primary" data-close>Done</button></div>
     </div>

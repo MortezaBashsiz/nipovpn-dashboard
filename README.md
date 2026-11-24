@@ -11,8 +11,8 @@ server:
 - **Usage**: each user's usage this period against their limit, current
   throughput and who is over their limit. You can reset or set a user's usage.
 - **Activity**: whether the server runs and for how long, open connections,
-  and when each user was last seen and from which address. It also lists server
-  events such as reloads, limits reached and errors.
+  and when each user was last seen and from which address. The **Server events**
+  tab lists events such as reloads, limits reached and errors.
 - **Sharing**: for each user, a ready agent `config.yaml` and a `nipovpn://` link
   with a QR code, for the [Android app](https://github.com/MortezaBashsiz/nipovpn-android).
 

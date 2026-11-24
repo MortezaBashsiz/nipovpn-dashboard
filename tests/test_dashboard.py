@@ -236,8 +236,14 @@ class AgentConfigTest(unittest.TestCase):
         cfg = agentconfig.agent_config(doc, user, "203.0.113.7", 443)
         ours = agentconfig.share_url(cfg, "nokhod")
         theirs = config2url.encode(config2url.build_payload(cfg, "nokhod"))
-        self.assertEqual(ours, theirs)
         decoded = config2url.decode(ours)["config"]
+        expected = config2url.decode(theirs)["config"]
+        self.assertEqual(decoded["aesEnable"], doc["general"]["aesEnable"])
+        if "aesEnable" not in expected:  # config2url.py does not have it yet
+            decoded_without = {k: v for k, v in decoded.items() if k != "aesEnable"}
+            self.assertEqual(decoded_without, expected)
+        else:
+            self.assertEqual(ours, theirs)
         self.assertEqual(decoded["token"], user["token"])
         self.assertEqual(decoded["serverIp"], "203.0.113.7")
 
