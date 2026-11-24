@@ -459,6 +459,7 @@
       $("s-port").value = data.port;
       $("s-url").value = data.url;
       $("s-yaml").value = data.yaml;
+      $("s-aes-warning").hidden = data.aesEnable !== false;
       if (data.qrSvg) {
         $("s-qr").src = `data:image/svg+xml;base64,${btoa(data.qrSvg)}`;
       } else {
@@ -486,6 +487,7 @@
     $("s-url").value = "";
     $("s-yaml").value = "";
     $("s-qr").removeAttribute("src");
+    $("s-aes-warning").hidden = true;
     $("share-dialog").showModal();
     loadShare();
   }

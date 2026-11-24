@@ -621,6 +621,7 @@ class Dashboard:
             "url": url,
             "qrSvg": svg,
             "defaultAddress": bool(not query.get("address")),
+            "aesEnable": cfg["general"]["aesEnable"],
         }
 
 

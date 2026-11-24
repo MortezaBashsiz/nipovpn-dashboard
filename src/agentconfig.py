@@ -74,6 +74,8 @@ def share_url(cfg, name):
         "endPoints": _lines(agent.get("endPoints")),
         "timeout": _str(general.get("timeout")),
         "pullTimeout": _str(agent.get("pullTimeout")),
+        # Not in config2url.py yet; Android app 1.1.59.5 and older ignore it and use AES.
+        "aesEnable": bool(general.get("aesEnable", True)),
         "tunnelEnable": bool(general.get("tunnelEnable", False)),
         "connectionReuse": bool(agent.get("connectionReuse", False)),
         "tlsEnable": bool(general.get("tlsEnable", False)),
