@@ -11,6 +11,7 @@ a nipovpn binary (--binary) to test against a real server.
 """
 
 import argparse
+import base64
 import copy
 import http.client
 import importlib.util
@@ -217,10 +218,26 @@ class SettingsTest(unittest.TestCase):
             {"log.logLevel": "LOUD"}, {"agent.fakeUrls": []}, {"agent.methods": ["get it"]},
             {"general.tlsEnable": "yes"}, {"nope.nope": 1}, {"server.usage.resetDay": 29},
             {"general.tlsEnable": True, "server.tlsCertFile": ""},
+            {"general.traffic": "all"}, {"general.traffic": "udp", "agent.protocol": "http"},
         ]
         for request in bad:
             with self.assertRaises(ValueError, msg=str(request)):
                 server_settings.plan(doc, request)
+
+    def test_traffic_setting(self):
+        doc = yaml.safe_load(sample_text())
+        doc["general"].pop("traffic", None)
+        self.assertEqual(server_settings.current(doc)["general.traffic"], "both")
+        changes, _, _ = server_settings.plan(doc, {"general.traffic": "tcp"})
+        self.assertEqual(changes, {("general", "traffic"): "tcp"})
+        changes, _, _ = server_settings.plan(doc, {"general.traffic": "udp", "agent.protocol": "socks5"})
+        self.assertEqual(changes[("general", "traffic")], "udp")
+
+        # A config from before the setting existed gets the key added to general.
+        text = "general:\n  timeout: 10\nlog:\n  logLevel: INFO\n"
+        new = serverconfig.set_values(text, {("general", "traffic"): "tcp"})
+        serverconfig._check_values(yaml.safe_load(text), new, {("general", "traffic"): "tcp"})
+        self.assertEqual(yaml.safe_load(new)["general"]["traffic"], "tcp")
 
     def test_moved_settings_are_read_from_general(self):
         doc = {"general": {"bufferSize": 1024}, "server": {}, "agent": {}}
@@ -255,6 +272,20 @@ class AgentConfigTest(unittest.TestCase):
         self.assertEqual(cfg["agent"]["serverIp"], "vpn.example")
         self.assertEqual(cfg["agent"]["serverPort"], 8443)
         self.assertEqual(cfg["general"]["tlsEnable"], doc["general"]["tlsEnable"])
+
+    def test_agent_config_and_link_carry_traffic(self):
+        doc = yaml.safe_load(sample_text())
+        user = serverconfig.users_of(doc)[0]
+        for traffic in ("tcp", "udp", "both"):
+            doc["general"]["traffic"] = traffic
+            cfg = agentconfig.agent_config(doc, user, "vpn.example", 443)
+            self.assertEqual(yaml.safe_load(agentconfig.agent_yaml(cfg, "adas"))["general"]["traffic"], traffic)
+            url = agentconfig.share_url(cfg, "adas")
+            payload = json.loads(base64.b64decode(url[len("nipovpn://"):]).decode("utf-8"))
+            self.assertEqual(payload["config"]["traffic"], traffic)
+        doc["general"].pop("traffic")
+        cfg = agentconfig.agent_config(doc, user, "vpn.example", 443)
+        self.assertEqual(cfg["general"]["traffic"], "both")
 
 
 class PasswordTest(unittest.TestCase):

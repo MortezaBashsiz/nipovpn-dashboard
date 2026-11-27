@@ -52,6 +52,11 @@ FIELDS = [
     _f("general.aesEnable", "link", "AES-256-GCM encryption", "bool", True,
        "Encrypts payloads. Off: requests are only signed, so traffic is readable on the path unless TLS is on.",
        agents=True),
+    _f("general.traffic", "link", "Traffic", "enum", "both",
+       "Which traffic is relayed. TCP and UDP is needed for a full-device VPN (DNS, QUIC, calls, games). "
+       "UDP only needs the agent's local protocol to be SOCKS5.",
+       options=["both", "tcp", "udp"], optionLabels={"both": "TCP and UDP", "tcp": "TCP only", "udp": "UDP only"},
+       agents=True),
     _f("general.timeout", "link", "I/O timeout", "int", 10,
        "Seconds before a stalled connection is closed. 0 means no timeout.", min=0, max=65535, unit="s"),
 
@@ -211,6 +216,10 @@ def plan(doc, requested):
         if value != before[id]:
             after[id] = value
             changed.append(id)
+
+    if after["general.traffic"] == "udp" and after["agent.protocol"] != "socks5":
+        raise ValueError("UDP only traffic needs the agent's local protocol to be SOCKS5 "
+                         "(an HTTP proxy carries only TCP)")
 
     warnings = []
     if after["general.tlsEnable"]:
