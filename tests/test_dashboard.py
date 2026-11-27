@@ -256,8 +256,12 @@ class AgentConfigTest(unittest.TestCase):
         decoded = config2url.decode(ours)["config"]
         expected = config2url.decode(theirs)["config"]
         self.assertEqual(decoded["aesEnable"], doc["general"]["aesEnable"])
-        if "aesEnable" not in expected:  # config2url.py does not have it yet
-            decoded_without = {k: v for k, v in decoded.items() if k != "aesEnable"}
+        self.assertEqual(decoded["traffic"], doc["general"].get("traffic", "both"))
+        # Fields the dashboard writes that the checked-out config2url.py may not
+        # have yet (it lags behind on the default branch).
+        newer = {k for k in ("aesEnable", "traffic") if k not in expected}
+        if newer:
+            decoded_without = {k: v for k, v in decoded.items() if k not in newer}
             self.assertEqual(decoded_without, expected)
         else:
             self.assertEqual(ours, theirs)
