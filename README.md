@@ -62,9 +62,14 @@ Two kinds of settings need more than a reload:
   waiting for a restart. The **Restart server** button in the top bar restarts
   it at any time; by default it runs `systemctl restart nipovpn-server`, or the
   `restartCommand` in the dashboard's config (for example for Docker).
-- **agents must match**: `tunnelEnable`, `tlsEnable`, `aesEnable` and the listen port
+- **agents must match**: `tunnelEnable`, `tlsEnable`, `aesEnable`, `traffic` and the listen port
   must be the same on every agent. After changing them, send every user a new
   config or link from the **Share** button.
+
+**Traffic** (`general.traffic`) chooses what the server relays: TCP and UDP
+(the default, needed for a full-device VPN), TCP only or UDP only. Shared agent
+configs and `nipovpn://` links carry the same value. UDP only needs the agent's
+local protocol to be SOCKS5.
 
 The **Agent template** section is the `agent:` block of the server's config. The
 server does not use it; the dashboard builds shared agent configs and links

@@ -191,6 +191,7 @@
       s.tlsEnable ? "TLS" : "no TLS",
       s.tunnelEnable ? "tunnel" : "polling",
       s.aesEnable ? "AES" : "signed",
+      { tcp: "TCP only", udp: "UDP only" }[s.traffic] || "TCP+UDP",
     ].join(" · ");
 
     const users = state.users;
@@ -688,7 +689,7 @@
       return [input, input];
     }
     if (field.type === "enum") {
-      input = el("select", { id }, field.options.map((o) => el("option", { value: o, text: o })));
+      input = el("select", { id }, field.options.map((o) => el("option", { value: o, text: (field.optionLabels || {})[o] || o })));
       input.value = field.value;
     } else if (field.type === "list") {
       input = el("textarea", { id, rows: String(Math.max(3, field.value.length + 1)), spellcheck: "false", class: "mono" });

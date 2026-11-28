@@ -419,6 +419,7 @@ class Dashboard:
                 "tlsEnable": bool(general.get("tlsEnable", False)),
                 "tunnelEnable": bool(general.get("tunnelEnable", False)),
                 "aesEnable": bool(general.get("aesEnable", True)),
+                "traffic": str(general.get("traffic", "both")),
                 "period": period,
                 "resetDay": ((server.get("usage") or {}).get("resetDay")) or 1,
             },

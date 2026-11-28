@@ -38,6 +38,7 @@ def agent_config(server_cfg, user, address, port):
             "timeout": general.get("timeout", 10),
             "tunnelEnable": bool(general.get("tunnelEnable", False)),
             "tlsEnable": bool(general.get("tlsEnable", False)),
+            "traffic": str(general.get("traffic", "both")),
         },
         "log": {"logLevel": "INFO", "logFile": "/var/log/nipovpn/nipovpn.log"},
         # The agent does not use this block, but the config must have one.
@@ -79,6 +80,8 @@ def share_url(cfg, name):
         "tunnelEnable": bool(general.get("tunnelEnable", False)),
         "connectionReuse": bool(agent.get("connectionReuse", False)),
         "tlsEnable": bool(general.get("tlsEnable", False)),
+        # tcp, udp or both; apps that do not know it ignore it and the agent uses both.
+        "traffic": _str(general.get("traffic", "both")),
         "tlsVerifyPeer": bool(agent.get("tlsVerifyPeer", False)),
         "tlsCertFile": _str(server.get("tlsCertFile")),
         "tlsKeyFile": _str(server.get("tlsKeyFile")),
